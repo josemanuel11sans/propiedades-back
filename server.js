@@ -1,5 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const path = require('path');
 const fileUpload = require('express-fileupload');
 const { MongoClient, Binary, ObjectId } = require('mongodb');
 const multer = require("multer");
@@ -11,8 +12,28 @@ const app = express();
 app.use(express.json());
 app.use(cors({ origin: "http://localhost:5173" }));
 app.use(fileUpload({ limits: { fileSize: 50 * 1024 * 1024 }, abortOnLimit: true }));
+app.use('/imagenes', express.static(path.join(__dirname, 'imagenes')));
 
 
+/* const GridFSBucket = require('mongodb').GridFSBucket
+const { Readable } = require('stream')
+
+async function getBase64FromGridFS(imageId, db) {
+  return new Promise((resolve, reject) => {
+    const bucket = new GridFSBucket(db, { bucketName: 'uploads' })
+    const downloadStream = bucket.openDownloadStream(new mongoose.Types.ObjectId(imageId))
+
+    const chunks = []
+    downloadStream.on('data', (chunk) => chunks.push(chunk))
+    downloadStream.on('end', () => {
+      const buffer = Buffer.concat(chunks)
+      const base64 = buffer.toString('base64')
+      resolve(base64)
+    })
+    downloadStream.on('error', reject)
+  })
+}
+ */
 
 const mongoURI = process.env.MONGO_URI;
 
@@ -79,7 +100,7 @@ const upload = multer({ storage });
 /**
  * 📌 CORRECCIÓN: Verificar que `db` está definido antes de acceder a `collection()`
  */
-app.post("/inmuebles/:id/imagenes", upload.array("imagenes"), async (req, res) => {
+/*app.post("/inmuebles/:id/imagenes", upload.array("imagenes"), async (req, res) => {
     if (!req.files || req.files.length === 0) {
         return res.status(400).send("No se enviaron archivos");
     }
@@ -112,7 +133,46 @@ app.post("/inmuebles/:id/imagenes", upload.array("imagenes"), async (req, res) =
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
+});*/
+
+
+
+
+
+app.post("/inmuebles/:id/imagenes", async (req, res) => {
+    if (!req.files || !req.files.imagenes) {
+        return res.status(400).json({ message: "No se enviaron imágenes" });
+    }
+
+    try {
+        const collection = db.collection("archivos");
+        const inmuebles = db.collection("inmuebles");
+
+        // Asegura que req.files.imagenes siempre sea un array
+        const archivos = Array.isArray(req.files.imagenes) ? req.files.imagenes : [req.files.imagenes];
+
+        const imagenesInsertadas = await Promise.all(archivos.map(async (file) => {
+            const fileData = {
+                content: new Binary(file.data),
+                name: file.name,
+                contentType: file.mimetype,
+                uploadDate: new Date(),
+            };
+            const result = await collection.insertOne(fileData);
+            return result.insertedId;
+        }));
+
+        await inmuebles.updateOne(
+            { _id: new ObjectId(req.params.id) },
+            { $push: { imagenes: { $each: imagenesInsertadas } } }
+        );
+
+        res.status(201).json({ imagenes: imagenesInsertadas, message: "Imágenes subidas correctamente" });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 });
+
 
 // 📌 CREACIÓN DE INMUEBLE
 app.post("/inmuebles", async (req, res) => {
@@ -125,7 +185,7 @@ app.post("/inmuebles", async (req, res) => {
     }
 });
 
-  app.get("/imagenes/:id", async (req, res) => {
+  /* app.get("/imagenes/:id", async (req, res) => {
     try {
       const collection = db.collection("archivos");
       const result = await collection.findOne({ _id: new ObjectId(req.params.id) });
@@ -138,8 +198,33 @@ app.post("/inmuebles", async (req, res) => {
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
-  });
+  }); */
 
+  app.get("/imagenes/:id", async (req, res) => {
+    try {
+      // Buscar la imagen en la colección de archivos
+      const collection = db.collection("archivos");
+      const result = await collection.findOne({ _id: new ObjectId(req.params.id) });
+      
+      // Si no se encuentra la imagen, retornar error 404
+      if (!result) {
+        return res.status(404).json({ message: "Imagen no encontrada" });
+      }
+  
+      // Convertir la imagen binaria a base64
+      const base64Image = result.content.buffer.toString('base64');
+      const imageUrl = `data:${result.contentType};base64,${base64Image}`;
+  
+      // Enviar la URL base64 como respuesta
+      res.json({ imageUrl });
+    } catch (error) {
+      // Manejo de errores
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  
+  
 
 // Leer todos los inmuebles
 app.get("/inmuebles", async (req, res) => {
