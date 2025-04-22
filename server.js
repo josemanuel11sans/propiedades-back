@@ -10,7 +10,16 @@ require("dotenv").config();
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: "http://localhost:5173" }));
+//app.use(cors({ origin: ["http://localhost:5173", "https://staging.dx3dytdtgwrtf.amplifyapp.com"] }));
+app.use(cors({
+    origin: [
+      "http://localhost:5173",
+      "https://staging.dx3dytdtgwrtf.amplifyapp.com"
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type"]
+  }));
+  
 app.use(fileUpload({ limits: { fileSize: 50 * 1024 * 1024 }, abortOnLimit: true }));
 app.use('/imagenes', express.static(path.join(__dirname, 'imagenes')));
 
