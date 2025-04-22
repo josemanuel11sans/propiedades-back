@@ -185,46 +185,46 @@ app.post("/inmuebles", async (req, res) => {
     }
 });
 
-  /* app.get("/imagenes/:id", async (req, res) => {
-    try {
-      const collection = db.collection("archivos");
-      const result = await collection.findOne({ _id: new ObjectId(req.params.id) });
-      if (!result) {
-        return res.status(404).json({ message: "Imagen no encontrada" });
-      }
-      res.setHeader("Content-Disposition", `inline; filename=\"${result.name}\"`);
-      res.setHeader("Content-Type", result.contentType);
-      res.send(result.content.buffer);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
+/* app.get("/imagenes/:id", async (req, res) => {
+  try {
+    const collection = db.collection("archivos");
+    const result = await collection.findOne({ _id: new ObjectId(req.params.id) });
+    if (!result) {
+      return res.status(404).json({ message: "Imagen no encontrada" });
     }
-  }); */
+    res.setHeader("Content-Disposition", `inline; filename=\"${result.name}\"`);
+    res.setHeader("Content-Type", result.contentType);
+    res.send(result.content.buffer);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}); */
 
-  app.get("/imagenes/:id", async (req, res) => {
+app.get("/imagenes/:id", async (req, res) => {
     try {
-      // Buscar la imagen en la colección de archivos
-      const collection = db.collection("archivos");
-      const result = await collection.findOne({ _id: new ObjectId(req.params.id) });
-      
-      // Si no se encuentra la imagen, retornar error 404
-      if (!result) {
-        return res.status(404).json({ message: "Imagen no encontrada" });
-      }
-  
-      // Convertir la imagen binaria a base64
-      const base64Image = result.content.buffer.toString('base64');
-      const imageUrl = `data:${result.contentType};base64,${base64Image}`;
-  
-      // Enviar la URL base64 como respuesta
-      res.json({ imageUrl });
+        // Buscar la imagen en la colección de archivos
+        const collection = db.collection("archivos");
+        const result = await collection.findOne({ _id: new ObjectId(req.params.id) });
+
+        // Si no se encuentra la imagen, retornar error 404
+        if (!result) {
+            return res.status(404).json({ message: "Imagen no encontrada" });
+        }
+
+        // Convertir la imagen binaria a base64
+        const base64Image = result.content.buffer.toString('base64');
+        const imageUrl = `data:${result.contentType};base64,${base64Image}`;
+
+        // Enviar la URL base64 como respuesta
+        res.json({ imageUrl });
     } catch (error) {
-      // Manejo de errores
-      res.status(500).json({ message: error.message });
+        // Manejo de errores
+        res.status(500).json({ message: error.message });
     }
-  });
-  
-  
-  
+});
+
+
+
 
 // Leer todos los inmuebles
 app.get("/inmuebles", async (req, res) => {
@@ -284,7 +284,7 @@ app.post("/inmuebles/:id/solicitudes_renta", async (req, res) => {
     try {
         const { inquilino_id, estado } = req.body;
         const inmueble = await Inmueble.findById(req.params.id);
-        
+
         if (!inmueble) {
             return res.status(404).json({ message: "Inmueble no encontrado" });
         }
@@ -309,7 +309,7 @@ app.post("/inmuebles/:id/solicitudes_renta", async (req, res) => {
 app.get("/inmuebles/:id/solicitudes_renta", async (req, res) => {
     try {
         const inmueble = await Inmueble.findById(req.params.id);
-        
+
         if (!inmueble) {
             return res.status(404).json({ message: "Inmueble no encontrado" });
         }
